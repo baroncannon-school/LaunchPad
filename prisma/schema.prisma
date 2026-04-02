@@ -1,0 +1,580 @@
+// ============================================================================
+// LaunchPad — Course Companion for Entrepreneurship @ SFHS
+// Database Schema (Prisma ORM + PostgreSQL via Supabase)
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  INSTRUCTOR
+  STUDENT
+  MENTOR
+}
+
+enum OwnershipType {
+  SCHOOL
+  SELF
+  BOTH
+}
+
+enum OfferingType {
+  PRODUCT
+  SERVICE
+  BOTH
+}
+
+enum VentureStatus {
+  FORMING
+  ACTIVE
+  WINDING_DOWN
+  CLOSED
+}
+
+enum TeamRole {
+  LEAD
+  MEMBER
+}
+
+enum Semester {
+  FALL
+  SPRING
+}
+
+enum MilestonePeriod {
+  P1_NOV
+  P2_DEC
+  P3_JAN
+  P4_FEB
+  P5_MAR
+  P6_APR
+  P7_MAY
+  P8_OTHER
+}
+
+enum RequirementLevel {
+  REQUIRED
+  OPTIONAL
+}
+
+enum MilestoneStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  VERIFIED
+  WAIVED
+}
+
+enum EvidenceType {
+  FILE
+  LINK
+  TEXT
+  NONE
+}
+
+enum FinancialStatementStatus {
+  NOT_SUBMITTED
+  PENDING_REVIEW
+  REVISION_REQUESTED
+  ACCEPTED
+}
+
+enum GradeCategory {
+  EXAM
+  QUIZ
+  MILESTONE_TRACKER
+  AUTHENTIC_ASSESSMENT
+  FINAL_EXAM
+  DESIGN_SHOWCASE
+}
+
+enum NotificationType {
+  MILESTONE_OVERDUE
+  MILESTONE_UPCOMING
+  CHECKIN_REMINDER
+  SCORE_THRESHOLD
+  FINANCIAL_STATEMENT_DUE
+  WEEKLY_DIGEST
+  MENTOR_UPDATE
+  SYSTEM
+}
+
+enum MaterialType {
+  READING
+  SLIDE_DECK
+  VIDEO
+  LINK
+  FILE
+  TEMPLATE
+}
+
+// ============================================================================
+// USERS & AUTH
+// ============================================================================
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String
+  firstName     String   @map("first_name")
+  lastName      String   @map("last_name")
+  role          UserRole
+  avatarUrl     String?  @map("avatar_url")
+  supabaseUid   String?  @unique @map("supabase_uid") // Links to Supabase Auth
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  enrollments       Enrollment[]
+  teamMemberships   TeamMembership[]
+  mentorAssignments MentorAssignment[]
+  milestoneProgress MilestoneProgress[]
+  checkInAttendees  CheckInAttendee[]
+  conductedCheckIns CheckIn[]            @relation("ConductedBy")
+  financialSubmissions FinancialStatement[] @relation("SubmittedBy")
+  gradeRecords      GradeRecord[]
+  notifications     Notification[]
+  activityLogs      ActivityLog[]
+
+  @@map("users")
+}
+
+// ============================================================================
+// COURSE STRUCTURE
+// ============================================================================
+
+model AcademicYear {
+  id        String   @id @default(cuid())
+  label     String   // e.g., "2025-2026"
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  semesters   SemesterConfig[]
+  sections    Section[]
+  ventures    Venture[]
+
+  @@map("academic_years")
+}
+
+model SemesterConfig {
+  id              String   @id @default(cuid())
+  academicYearId  String   @map("academic_year_id")
+  semester        Semester
+  startDate       DateTime @map("start_date")
+  endDate         DateTime @map("end_date")
+
+  // Grade weight configuration (stored as JSON for flexibility)
+  // e.g., { "EXAM": 0.25, "MILESTONE_TRACKER": 0.50, "QUIZ": 0.05, ... }
+  gradeWeights    Json     @map("grade_weights")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  academicYear    AcademicYear @relation(fields: [academicYearId], references: [id])
+  units           Unit[]
+  gradeRecords    GradeRecord[]
+
+  @@unique([academicYearId, semester])
+  @@map("semester_configs")
+}
+
+model Section {
+  id              String   @id @default(cuid())
+  academicYearId  String   @map("academic_year_id")
+  period          Int      // 3, 5, 6 etc.
+  label           String?  // Optional friendly name
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  academicYear    AcademicYear @relation(fields: [academicYearId], references: [id])
+  enrollments     Enrollment[]
+  ventures        Venture[]
+
+  @@unique([academicYearId, period])
+  @@map("sections")
+}
+
+model Enrollment {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  sectionId   String   @map("section_id")
+  enrolledAt  DateTime @default(now()) @map("enrolled_at")
+  droppedAt   DateTime? @map("dropped_at")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+  section     Section  @relation(fields: [sectionId], references: [id])
+
+  @@unique([userId, sectionId])
+  @@map("enrollments")
+}
+
+// ============================================================================
+// VENTURES & TEAMS
+// ============================================================================
+
+model Venture {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?
+  ownershipType   OwnershipType @map("ownership_type")
+  offeringType    OfferingType  @map("offering_type")
+  status          VentureStatus @default(ACTIVE)
+  sectionId       String        @map("section_id")
+  academicYearId  String        @map("academic_year_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  section           Section            @relation(fields: [sectionId], references: [id])
+  academicYear      AcademicYear       @relation(fields: [academicYearId], references: [id])
+  teamMemberships   TeamMembership[]
+  mentorAssignments MentorAssignment[]
+  milestoneProgress MilestoneProgress[]
+  checkIns          CheckIn[]
+  financialStatements FinancialStatement[]
+  activityLogs      ActivityLog[]
+
+  @@map("ventures")
+}
+
+model TeamMembership {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  ventureId   String   @map("venture_id")
+  teamRole    TeamRole @default(MEMBER) @map("team_role")
+  joinedAt    DateTime @default(now()) @map("joined_at")
+  leftAt      DateTime? @map("left_at")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+  venture     Venture  @relation(fields: [ventureId], references: [id])
+
+  @@unique([userId, ventureId])
+  @@map("team_memberships")
+}
+
+model MentorAssignment {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")     // The mentor
+  ventureId   String   @map("venture_id")
+  assignedAt  DateTime @default(now()) @map("assigned_at")
+  endedAt     DateTime? @map("ended_at")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+  venture     Venture  @relation(fields: [ventureId], references: [id])
+
+  @@unique([userId, ventureId])
+  @@map("mentor_assignments")
+}
+
+// ============================================================================
+// MILESTONE SYSTEM
+// ============================================================================
+
+model MilestoneDefinition {
+  id                String           @id @default(cuid())
+  title             String
+  description       String?
+  period            MilestonePeriod
+  ownershipFilter   OwnershipType    @map("ownership_filter")
+  requirementLevel  RequirementLevel @map("requirement_level")
+  offeringFilter    OfferingType     @map("offering_filter")
+  sequenceOrder     Int              @map("sequence_order")
+  evidenceRequired  Boolean          @default(false) @map("evidence_required")
+  evidenceType      EvidenceType     @default(NONE) @map("evidence_type")
+
+  // Phase grouping for UI organization
+  phaseLabel        String?          @map("phase_label")
+  // e.g., "Initial Development", "Sales Strategy & Going to Market", etc.
+
+  // Guidance text shown to students
+  guidanceText      String?          @map("guidance_text")
+  // Links to relevant course materials
+  relatedMaterialIds String[]        @map("related_material_ids")
+
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  progress          MilestoneProgress[]
+
+  @@map("milestone_definitions")
+}
+
+model MilestoneProgress {
+  id                    String          @id @default(cuid())
+  studentId             String          @map("student_id")
+  ventureId             String          @map("venture_id")
+  milestoneDefinitionId String          @map("milestone_definition_id")
+  status                MilestoneStatus @default(NOT_STARTED)
+
+  // Evidence / proof of completion
+  evidenceUrl           String?         @map("evidence_url")
+  evidenceText          String?         @map("evidence_text")
+  evidenceFiles         String[]        @map("evidence_files") // Array of storage paths
+
+  // Notes from student, instructor, or mentor
+  studentNotes          String?         @map("student_notes")
+  instructorNotes       String?         @map("instructor_notes")
+
+  // Timestamps
+  startedAt             DateTime?       @map("started_at")
+  submittedAt           DateTime?       @map("submitted_at")
+  verifiedAt            DateTime?       @map("verified_at")
+  verifiedBy            String?         @map("verified_by") // User ID of verifier
+
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  student               User            @relation(fields: [studentId], references: [id])
+  venture               Venture         @relation(fields: [ventureId], references: [id])
+  milestoneDefinition   MilestoneDefinition @relation(fields: [milestoneDefinitionId], references: [id])
+
+  @@unique([studentId, milestoneDefinitionId])
+  @@index([ventureId])
+  @@index([studentId, status])
+  @@map("milestone_progress")
+}
+
+// ============================================================================
+// SCORING CONFIGURATION
+// ============================================================================
+
+// Stores the multiplier rules used to calculate milestone scores
+// Separated from code so you can adjust without redeploying
+model ScoringRule {
+  id          String  @id @default(cuid())
+  label       String  // e.g., "Group Required", "Lead Optional"
+  teamRole    TeamRole
+  requirement RequirementLevel
+  multiplier  Float
+  isActive    Boolean @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([teamRole, requirement])
+  @@map("scoring_rules")
+}
+
+// Cached score snapshots for performance and history
+model ScoreSnapshot {
+  id              String   @id @default(cuid())
+  studentId       String   @map("student_id")
+  ventureId       String   @map("venture_id")
+  calculatedScore Float    @map("calculated_score")
+  maxPossible     Float    @map("max_possible")
+  percentage      Float
+  completedCount  Int      @map("completed_count")
+  applicableCount Int      @map("applicable_count")
+  breakdown       Json     // Detailed per-milestone scoring breakdown
+  calculatedAt    DateTime @default(now()) @map("calculated_at")
+
+  @@index([studentId, calculatedAt])
+  @@map("score_snapshots")
+}
+
+// ============================================================================
+// CHECK-INS
+// ============================================================================
+
+model CheckIn {
+  id              String   @id @default(cuid())
+  ventureId       String   @map("venture_id")
+  conductedById   String   @map("conducted_by_id")
+  scheduledDate   DateTime? @map("scheduled_date")
+  conductedDate   DateTime? @map("conducted_date")
+  notes           String?
+  actionItems     Json?    @map("action_items") // Array of { text, assignee, dueDate, completed }
+  nextCheckInDate DateTime? @map("next_check_in_date")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  venture         Venture  @relation(fields: [ventureId], references: [id])
+  conductedBy     User     @relation("ConductedBy", fields: [conductedById], references: [id])
+  attendees       CheckInAttendee[]
+
+  @@index([ventureId, conductedDate])
+  @@map("check_ins")
+}
+
+model CheckInAttendee {
+  id          String @id @default(cuid())
+  checkInId   String @map("check_in_id")
+  userId      String @map("user_id")
+  wasPresent  Boolean @default(true) @map("was_present")
+
+  // Relations
+  checkIn     CheckIn @relation(fields: [checkInId], references: [id], onDelete: Cascade)
+  user        User    @relation(fields: [userId], references: [id])
+
+  @@unique([checkInId, userId])
+  @@map("check_in_attendees")
+}
+
+// ============================================================================
+// FINANCIAL STATEMENTS
+// ============================================================================
+
+model FinancialStatement {
+  id            String                   @id @default(cuid())
+  ventureId     String                   @map("venture_id")
+  submittedById String                   @map("submitted_by_id")
+  month         String                   // e.g., "2026-02", "2026-03", "2026-04"
+  fileUrl       String?                  @map("file_url")
+  filePaths     String[]                 @map("file_paths") // Multiple files
+  status        FinancialStatementStatus @default(NOT_SUBMITTED)
+  feedback      String?
+  submittedAt   DateTime?                @map("submitted_at")
+  reviewedAt    DateTime?                @map("reviewed_at")
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  updatedAt     DateTime                 @updatedAt @map("updated_at")
+
+  // Relations
+  venture       Venture @relation(fields: [ventureId], references: [id])
+  submittedBy   User    @relation("SubmittedBy", fields: [submittedById], references: [id])
+
+  @@unique([ventureId, month])
+  @@index([status])
+  @@map("financial_statements")
+}
+
+// ============================================================================
+// GRADEBOOK
+// ============================================================================
+
+model GradeRecord {
+  id               String        @id @default(cuid())
+  studentId        String        @map("student_id")
+  semesterConfigId String        @map("semester_config_id")
+  category         GradeCategory
+  label            String?       // e.g., "Unit 1 Exam", "Q2 Quiz"
+  score            Float
+  maxScore         Float         @map("max_score")
+  weight           Float?        // Override weight if different from semester config
+  syncedToLms      Boolean       @default(false) @map("synced_to_lms")
+  syncedAt         DateTime?     @map("synced_at")
+  lmsAssignmentId  String?       @map("lms_assignment_id") // Schoology assignment ID
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  student          User           @relation(fields: [studentId], references: [id])
+  semesterConfig   SemesterConfig @relation(fields: [semesterConfigId], references: [id])
+
+  @@index([studentId, semesterConfigId])
+  @@map("grade_records")
+}
+
+// ============================================================================
+// COURSE MATERIALS
+// ============================================================================
+
+model Unit {
+  id               String   @id @default(cuid())
+  semesterConfigId String   @map("semester_config_id")
+  title            String   // e.g., "Unit 1: Marketing"
+  description      String?
+  sequenceOrder    Int      @map("sequence_order")
+  isPublished      Boolean  @default(false) @map("is_published")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  semesterConfig   SemesterConfig @relation(fields: [semesterConfigId], references: [id])
+  materials        Material[]
+
+  @@map("units")
+}
+
+model Material {
+  id            String       @id @default(cuid())
+  unitId        String       @map("unit_id")
+  title         String
+  description   String?
+  type          MaterialType
+  url           String?      // External link or file storage path
+  filePath      String?      @map("file_path") // Supabase storage path
+  sequenceOrder Int          @map("sequence_order")
+  isPublished   Boolean      @default(false) @map("is_published")
+  publishDate   DateTime?    @map("publish_date")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  unit          Unit @relation(fields: [unitId], references: [id])
+
+  @@map("materials")
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String           @map("user_id")
+  type        NotificationType
+  title       String
+  body        String
+  metadata    Json?            // Contextual data (ventureId, milestoneId, etc.)
+  isRead      Boolean          @default(false) @map("is_read")
+  readAt      DateTime?        @map("read_at")
+  emailSent   Boolean          @default(false) @map("email_sent")
+  emailSentAt DateTime?        @map("email_sent_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  user        User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// ============================================================================
+// ACTIVITY LOG (Audit Trail)
+// ============================================================================
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String?  @map("user_id")      // null for system actions
+  ventureId   String?  @map("venture_id")
+  action      String   // e.g., "milestone.completed", "checkin.conducted"
+  entityType  String?  @map("entity_type")   // e.g., "MilestoneProgress"
+  entityId    String?  @map("entity_id")
+  metadata    Json?    // Additional context
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user        User?    @relation(fields: [userId], references: [id])
+  venture     Venture? @relation(fields: [ventureId], references: [id])
+
+  @@index([ventureId, createdAt])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("activity_logs")
+}
