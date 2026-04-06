@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { calculateStudentScore } from "@/lib/scoring";
+import { ViewAsStudentButton } from "@/components/view-as-student-button";
 
 export default async function StudentDetailPage({
   params,
@@ -84,9 +85,16 @@ export default async function StudentDetailPage({
             {student.lastName.charAt(0)}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {student.firstName} {student.lastName}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {student.firstName} {student.lastName}
+              </h1>
+              <ViewAsStudentButton
+                studentId={student.id}
+                studentName={`${student.firstName} ${student.lastName}`}
+                variant="button"
+              />
+            </div>
             <p className="text-sm text-gray-500">{student.email}</p>
             <div className="flex gap-2 mt-2">
               {venture && (
