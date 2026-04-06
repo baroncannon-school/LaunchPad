@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { ViewAsStudentButton } from "@/components/view-as-student-button";
 
 export default async function StudentsPage() {
   await requireRole("INSTRUCTOR");
@@ -56,6 +57,9 @@ export default async function StudentsPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Progress
                 </th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                                  View
+                                                                  </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -116,6 +120,12 @@ export default async function StudentsPage() {
                         <span className="text-xs text-gray-500">{pct}%</span>
                       </div>
                     </td>
+                                        <td className="px-4 py-3 text-center">
+                                                              <ViewAsStudentButton
+                                                                                      studentId={student.id}
+                                                                                                              studentName={`${student.firstName} ${student.lastName}`}
+                                                                                                                                    />
+                                                                                                                                                        </td>
                   </tr>
                 );
               })}
