@@ -1,13 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    images: {
+  images: {
     remotePatterns: [
-{
+      {
         protocol: "https",
-                  hostname: "lh3.googleusercontent.com", // Google OAuth avatars
-          },
-          ],
+        hostname: "lh3.googleusercontent.com", // Google OAuth avatars
       },
-      };
+    ],
+  },
+};
 
 export default nextConfig;

@@ -57,9 +57,9 @@ export default async function StudentsPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Progress
                 </th>
-                                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                  View
-                                                                  </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  View
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -96,17 +96,17 @@ export default async function StudentsPage() {
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {membership
                         ? `P${membership.venture.section.period}`
-                        : "—"}
+                        : "\u2014"}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {membership?.teamRole === "LEAD" ? (
                         <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                          Lead ★
+                          Lead \u2605
                         </span>
                       ) : membership ? (
                         <span className="text-gray-500 text-xs">Member</span>
                       ) : (
-                        "—"
+                        "\u2014"
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -120,12 +120,12 @@ export default async function StudentsPage() {
                         <span className="text-xs text-gray-500">{pct}%</span>
                       </div>
                     </td>
-                                        <td className="px-4 py-3 text-center">
-                                                              <ViewAsStudentButton
-                                                                                      studentId={student.id}
-                                                                                                              studentName={`${student.firstName} ${student.lastName}`}
-                                                                                                                                    />
-                                                                                                                                                        </td>
+                    <td className="px-4 py-3 text-center">
+                      <ViewAsStudentButton
+                        studentId={student.id}
+                        studentName={`${student.firstName} ${student.lastName}`}
+                      />
+                    </td>
                   </tr>
                 );
               })}

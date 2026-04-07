@@ -84,7 +84,7 @@ export default async function StudentDetailPage({
             {student.firstName.charAt(0)}
             {student.lastName.charAt(0)}
           </div>
-          <div>
+          <div className="flex-1">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900">
                 {student.firstName} {student.lastName}
