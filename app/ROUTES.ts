@@ -248,13 +248,114 @@ app/
 */
 
 // ============================================================================
-// Middleware implementation sketch
+// Centralized Route Constants
+// ============================================================================
+
+/**
+ * ROUTES: Comprehensive centralized route constants for the LaunchPad app
+ *
+ * Export this object from pages/components that need to navigate around the app.
+ * All routes are organized by role and functionality to ensure consistency.
+ *
+ * Usage:
+ *   import { ROUTES } from "@/app/ROUTES";
+ *
+ *   <Link href={ROUTES.student.dashboard}>Dashboard</Link>
+ *   <Link href={ROUTES.instructor.venture("abc123")}>Venture Detail</Link>
+ *   <Link href={ROUTES.api.scoresCalculate}>Calculate Scores</Link>
+ */
+export const ROUTES = {
+  // ========== Auth Routes ==========
+  login: "/login",
+  authCallback: "/auth/callback",
+
+  // ========== Student Routes ==========
+  student: {
+    dashboard: "/student/dashboard",
+    milestones: "/student/milestones",
+    milestone: (id: string) => `/student/milestones/${id}`,
+    score: "/student/score",
+    team: "/student/team",
+    financials: "/student/financials",
+    financialMonth: (month: string) => `/student/financials/${month}`,
+    grades: "/student/grades",
+    materials: "/student/materials",
+    material: (id: string) => `/student/materials/${id}`,
+  },
+
+  // ========== Instructor Routes ==========
+  instructor: {
+    dashboard: "/instructor/dashboard",
+    ventures: "/instructor/ventures",
+    venture: (id: string) => `/instructor/ventures/${id}`,
+    ventureCheckIns: (id: string) => `/instructor/ventures/${id}/check-ins`,
+    ventureNewCheckIn: (id: string) => `/instructor/ventures/${id}/check-ins/new`,
+    ventureFinancials: (id: string) => `/instructor/ventures/${id}/financials`,
+    students: "/instructor/students",
+    student: (id: string) => `/instructor/students/${id}`,
+    milestones: "/instructor/milestones",
+    gradebook: "/instructor/gradebook",
+    materials: "/instructor/materials",
+    materialUnit: (id: string) => `/instructor/materials/${id}`,
+    materialNew: "/instructor/materials/new",
+    settings: "/instructor/settings",
+  },
+
+  // ========== Mentor Routes ==========
+  mentor: {
+    dashboard: "/mentor/dashboard",
+    ventures: "/mentor/ventures",
+    venture: (id: string) => `/mentor/ventures/${id}`,
+    ventureCheckIn: (id: string) => `/mentor/ventures/${id}/conduct-check-in`,
+    ventureNotes: (id: string) => `/mentor/ventures/${id}/notes`,
+  },
+
+  // ========== API Routes ==========
+  api: {
+    // Auth
+    authCallback: "/api/auth/callback",
+    impersonate: "/api/impersonate",
+
+    // Scores
+    scoresCalculate: "/api/scores/calculate",
+    scoresBatch: "/api/scores/batch",
+
+    // Milestones
+    milestones: "/api/milestones",
+    milestone: (id: string) => `/api/milestones/${id}`,
+    milestonesBulkUpdate: "/api/milestones/bulk-update",
+
+    // Check-ins
+    checkIns: "/api/check-ins",
+
+    // Financials
+    financialsUpload: "/api/financials/upload",
+    financial: (id: string) => `/api/financials/${id}`,
+
+    // Gradebook
+    gradebook: "/api/gradebook",
+    gradebookExport: "/api/gradebook/export",
+    gradebookSync: "/api/gradebook/sync",
+
+    // Notifications
+    notifications: "/api/notifications",
+    notificationsDigest: "/api/notifications/digest",
+
+    // Cron jobs
+    cronOverdueCheck: "/api/cron/overdue-check",
+    cronWeeklyDigest: "/api/cron/weekly-digest",
+    cronScoreSnapshot: "/api/cron/score-snapshot",
+  },
+} as const;
+
+// ============================================================================
+// Helper Constants for Role-Based Routing
 // ============================================================================
 
 export const ROLE_ROUTES = {
-  INSTRUCTOR: "/instructor/dashboard",
-  STUDENT: "/student/dashboard",
-  MENTOR: "/mentor/dashboard",
+  INSTRUCTOR: ROUTES.instructor.dashboard,
+  STUDENT: ROUTES.student.dashboard,
+  MENTOR: ROUTES.mentor.dashboard,
 } as const;
 
 export const ROLE_PREFIXES = {
@@ -263,8 +364,19 @@ export const ROLE_PREFIXES = {
   MENTOR: "/mentor",
 } as const;
 
-// Middleware ensures:
-// 1. All (authenticated) routes require a valid session
-// 2. Users can only access routes matching their role prefix
-// 3. Accessing / redirects to the appropriate dashboard
-// 4. Accessing another role's prefix returns 403
+// ============================================================================
+// Middleware Implementation Notes
+// ============================================================================
+/*
+ * Middleware ensures:
+ * 1. All (authenticated) routes require a valid session
+ * 2. Users can only access routes matching their role prefix
+ * 3. Accessing / redirects to the appropriate dashboard based on user role
+ * 4. Accessing another role's prefix returns 403 Forbidden
+ *
+ * Redirect Logic:
+ *   - Unauthenticated users → /login
+ *   - Authenticated INSTRUCTOR → ROLE_ROUTES.INSTRUCTOR
+ *   - Authenticated STUDENT → ROLE_ROUTES.STUDENT
+ *   - Authenticated MENTOR → ROLE_ROUTES.MENTOR
+ */
