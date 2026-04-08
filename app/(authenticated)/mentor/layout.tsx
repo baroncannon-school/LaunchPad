@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth";
 import { NavLink } from "@/components/nav-link";
 import { UserMenu } from "@/components/user-menu";
+import { NotificationBell } from "@/components/notification-bell";
 
 export default async function MentorLayout({
   children,
@@ -34,7 +35,10 @@ export default async function MentorLayout({
       </aside>
 
       <main className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="p-6 max-w-5xl mx-auto">{children}</div>
+        <div className="flex items-center justify-end px-6 pt-4">
+          <NotificationBell />
+        </div>
+        <div className="px-6 pb-6 max-w-5xl mx-auto">{children}</div>
       </main>
     </div>
   );

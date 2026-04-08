@@ -1,7 +1,11 @@
 import { requireRole, getEffectiveUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { format } from "date-fns";
 import type { Venture, User, TeamMembership, MentorAssignment, CheckIn, MilestoneProgress } from "@prisma/client";
+
+function format(date: Date | string, _pattern: string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
 // ============================================================================
 // Student Team Overview Page
