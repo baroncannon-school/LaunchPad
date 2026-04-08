@@ -27,12 +27,14 @@ interface CheckInFormProps {
   ventureId: string;
   ventureName: string;
   teamMembers: TeamMember[];
+  redirectUrl?: string; // Optional custom redirect path
 }
 
 export function CheckInForm({
   ventureId,
   ventureName,
   teamMembers,
+  redirectUrl,
 }: CheckInFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,8 +104,9 @@ export function CheckInForm({
         throw new Error(data.error || "Failed to create check-in");
       }
 
-      // Redirect to check-ins page
-      router.push(`/instructor/ventures/${ventureId}/check-ins`);
+      // Redirect to appropriate page (instructor or mentor)
+      const targetUrl = redirectUrl || `/instructor/ventures/${ventureId}/check-ins`;
+      router.push(targetUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {

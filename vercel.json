@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/score-snapshot",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/overdue-check",
+      "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/cron/weekly-digest",
+      "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/cron/financial-reminder",
+      "schedule": "0 9 1 * *"
+    }
+  ]
+}
