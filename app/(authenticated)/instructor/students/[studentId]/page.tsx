@@ -23,10 +23,13 @@ export default async function StudentDetailPage({
         where: { isActive: true },
         include: {
           venture: {
-            include: { section: true },
-          },
-          teamMembers: {
-            include: { user: true },
+            include: {
+              section: true,
+              teamMemberships: {
+                where: { isActive: true },
+                include: { user: { select: { id: true, firstName: true, lastName: true } } },
+              },
+            },
           },
         },
       },
@@ -39,7 +42,7 @@ export default async function StudentDetailPage({
         orderBy: { createdAt: "desc" },
         take: 20,
       },
-      activityLog: {
+      activityLogs: {
         orderBy: { createdAt: "desc" },
         take: 10,
         include: { venture: true },
@@ -173,15 +176,15 @@ export default async function StudentDetailPage({
                 )}
               </div>
               <p className="text-sm text-gray-500 mt-3">
-                {membership.teamMembers?.length || 0} team members total
+                {venture.teamMemberships?.length || 0} team members total
               </p>
             </div>
           </div>
-          {membership.teamMembers && membership.teamMembers.length > 0 && (
+          {venture.teamMemberships && venture.teamMemberships.length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <h4 className="text-sm font-medium text-gray-700 mb-3">Team Members</h4>
               <div className="flex flex-wrap gap-2">
-                {membership.teamMembers.map((tm) => (
+                {venture.teamMemberships.map((tm) => (
                   <span
                     key={tm.userId}
                     className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700"
@@ -336,7 +339,7 @@ export default async function StudentDetailPage({
                         {percentage}%
                       </td>
                       <td className="py-3 px-4 text-xs text-gray-500">
-                        {grade.semesterConfig.label}
+                        {grade.semesterConfig.semester}
                       </td>
                     </tr>
                   );
@@ -353,11 +356,11 @@ export default async function StudentDetailPage({
       )}
 
       {/* Recent Activity */}
-      {student.activityLog.length > 0 && (
+      {student.activityLogs.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
           <div className="space-y-3">
-            {student.activityLog.map((activity) => {
+            {student.activityLogs.map((activity) => {
               const timestamp = new Date(activity.createdAt);
               const timeAgo = formatTimeAgo(timestamp);
 
@@ -386,7 +389,7 @@ export default async function StudentDetailPage({
               );
             })}
           </div>
-          {student.activityLog.length === 0 && (
+          {student.activityLogs.length === 0 && (
             <p className="text-sm text-gray-500">No activity recorded yet.</p>
           )}
         </div>

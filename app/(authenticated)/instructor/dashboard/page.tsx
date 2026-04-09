@@ -30,7 +30,7 @@ export default async function InstructorDashboard() {
     orderBy: { updatedAt: "asc" },
     take: 10,
     include: {
-      milestone: {
+      milestoneDefinition: {
         select: { title: true },
       },
       student: {
@@ -127,7 +127,7 @@ export default async function InstructorDashboard() {
                         {mp.student.firstName} {mp.student.lastName}
                       </p>
                       <p className="text-xs text-gray-600">
-                        {mp.milestone.title}
+                        {mp.milestoneDefinition.title}
                       </p>
                       <p className="text-xs text-gray-500">{mp.venture.name}</p>
                     </div>
@@ -186,10 +186,15 @@ export default async function InstructorDashboard() {
               <div key={log.id} className="flex justify-between text-sm">
                 <p className="text-gray-700">
                   <span className="font-medium">
-                    {log.user.firstName} {log.user.lastName}
+                    {log.user?.firstName} {log.user?.lastName}
                   </span>{" "}
-                  {log.action} on{" "}
-                  <span className="font-medium">{log.venture.name}</span>
+                  {log.action}
+                  {log.venture && (
+                    <>
+                      {" "}on{" "}
+                      <span className="font-medium">{log.venture.name}</span>
+                    </>
+                  )}
                 </p>
                 <p className="text-gray-500">{timeAgo(log.createdAt)}</p>
               </div>

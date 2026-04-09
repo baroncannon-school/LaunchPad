@@ -16,7 +16,7 @@ export default async function SettingsPage() {
   const activeYear = await prisma.academicYear.findFirst({
     where: { isActive: true },
     include: {
-      semesterConfigs: {
+      semesters: {
         orderBy: { semester: "asc" },
       },
     },
@@ -52,7 +52,7 @@ export default async function SettingsPage() {
                 Configure the percentage weight for each grade category in your course.
               </p>
             </div>
-            <GradeWeightsEditor semesterConfigs={activeYear.semesterConfigs} />
+            <GradeWeightsEditor semesterConfigs={activeYear.semesters} />
           </div>
         )}
 
@@ -76,7 +76,7 @@ export default async function SettingsPage() {
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {activeYear.semesterConfigs.map((config) => (
+                {activeYear.semesters.map((config) => (
                   <div key={config.id}>
                     <label className="block text-sm font-medium text-gray-700">
                       {config.semester} Semester
